@@ -16,13 +16,14 @@ export namespace Action {
     ) {
       const octokit = Util.getOctokit()
       const duplicates = []
-      const response = await octokit.rest.issues.listForRepo({
+      const response = await octokit.paginate(octokit.rest.issues.listForRepo, {
         ...context.repo,
         state: core.getInput('state') as 'all' | 'open' | 'closed',
+        per_page: 100,
       })
 
       const { title } = payload
-      const issues = response.data.filter(
+      const issues = response.filter(
         (i) => i.number !== payload.number && i.pull_request === undefined,
       )
       const threshold = parseFloat(core.getInput('threshold'))
