@@ -16,11 +16,31 @@ export namespace Action {
     ) {
       const octokit = Util.getOctokit()
       const duplicates = []
-      const response = await octokit.paginate(octokit.rest.issues.listForRepo, {
-        ...context.repo,
-        state: core.getInput('state') as 'all' | 'open' | 'closed',
-        per_page: 100,
-      })
+
+      // eslint-disable-next-line no-console
+      console.log('API rate limit before:', await octokit.rest.rateLimit.get())
+
+      let response
+      let fail = false
+
+      try {
+        response = await octokit.paginate(octokit.rest.issues.listForRepo, {
+          ...context.repo,
+          state: core.getInput('state') as 'all' | 'open' | 'closed',
+          per_page: 100,
+        })
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.log('Well, then.', e)
+        fail = true
+      }
+
+      // eslint-disable-next-line no-console
+      console.log('API rate limit after:', await octokit.rest.rateLimit.get())
+
+      if (fail || !response) {
+        return 1
+      }
 
       const { title } = payload
       const issues = response.filter(
@@ -79,5 +99,7 @@ export namespace Action {
         }
       }
     }
+
+    return 0
   }
 }
